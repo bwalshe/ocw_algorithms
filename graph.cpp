@@ -19,19 +19,21 @@ public:
     std::set<int> _seen;
     std::set<int> _frountier;
     std::set<int> _next_frountier;
-    int _v;
-    int _depth;
+    size_t _v;
+    size_t _depth;
     const Graph *_g;
 
-    BreadthFirstIterator() : _v{-1} {}
+    BreadthFirstIterator(const Graph *g) : _v{g->vertices.size()} {}
 
   public:
-    BreadthFirstIterator(int start, const Graph *g) : _v(start), _g(g) {
+    BreadthFirstIterator(size_t start, const Graph *g) : _v(start), _g(g) {
       auto i = g->edges.at(start);
       _next_frountier.insert(i.begin(), i.end());
     }
 
-    static BreadthFirstIterator end() { return BreadthFirstIterator(); }
+    static BreadthFirstIterator end(const Graph *g) {
+      return BreadthFirstIterator(g);
+    }
 
     BreadthFirstIterator &operator++() {
       if (_frountier.empty()) {
@@ -40,7 +42,7 @@ public:
         ++_depth;
       }
       if (_frountier.size() == 0) {
-        _v = -1;
+        _v = _g->vertices.size();
         return *this;
       }
       _v = *_frountier.begin();
@@ -62,9 +64,10 @@ public:
       return tmp;
     }
 
-    const std::pair<const T *, int> operator*() const {
-      return std::pair(&(_g->vertices[_v]), _depth);
-    }
+    const T &operator*() const { return _g->vertices.at(_v); }
+
+    int depth() const { return _depth; }
+
     friend bool operator==(BreadthFirstIterator const &a,
                            BreadthFirstIterator const &b) {
       if (&a == &b)
@@ -79,10 +82,10 @@ public:
 
   using breadth_first = BreadthFirstIterator;
   std::vector<T> vertices;
-  std::unordered_map<int, std::vector<int>> edges;
+  std::unordered_map<size_t, std::vector<size_t>> edges;
 
-  int add_vertex(const T &value) {
-    int i = vertices.size();
+  size_t add_vertex(const T &value) {
+    size_t i = vertices.size();
     vertices.push_back(value);
     return i;
   }
@@ -93,16 +96,18 @@ public:
     return i;
   }
 
-  Graph &add_edge(int source, int dest) {
+  Graph &add_edge(size_t source, size_t dest) {
     edges[source].push_back(dest);
     return *this;
   }
 
-  BreadthFirstIterator depth_first_start(int start) const {
+  BreadthFirstIterator depth_first_start(size_t start) const {
     return BreadthFirstIterator(start, this);
   }
 
-  BreadthFirstIterator depth_first_end() const { return breadth_first::end(); }
+  BreadthFirstIterator depth_first_end() const {
+    return BreadthFirstIterator::end(this);
+  }
 };
 
 int main(int argc, char **argv) {
@@ -121,7 +126,7 @@ int main(int argc, char **argv) {
 
   std::cout << "Depth First:" << std::endl;
   for (string_graph::breadth_first v = g.depth_first_start(0);
-       v != string_graph::breadth_first::end(); ++v) {
-    std::cout << *(*v).first << " (depth = " << (*v).second << ")" << std::endl;
+       v != g.depth_first_end(); ++v) {
+    std::cout << *v << " (depth = " << v.depth() << ")" << std::endl;
   }
 }

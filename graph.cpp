@@ -25,18 +25,22 @@ public:
 
     BreadthFirstIterator(const Graph *g) : _v{g->vertices.size()} {}
 
+    static BreadthFirstIterator end(const Graph *g) {
+      return BreadthFirstIterator(g);
+    }
+
   public:
     BreadthFirstIterator(size_t start, const Graph *g) : _v(start), _g(g) {
       auto i = g->edges.at(start);
       _next_frountier.insert(i.begin(), i.end());
     }
 
-    static BreadthFirstIterator end(const Graph *g) {
-      return BreadthFirstIterator(g);
-    }
+    BreadthFirstIterator begin() const { return *this; }
+
+    BreadthFirstIterator end() const { return end(this->_g); }
 
     BreadthFirstIterator &operator++() {
-      if (_frountier.empty()) {
+      if (_frountier.empty() && !_next_frountier.empty()) {
         _frountier.swap(_next_frountier);
         _next_frountier.clear();
         ++_depth;
@@ -80,7 +84,6 @@ public:
     }
   };
 
-  using breadth_first = BreadthFirstIterator;
   std::vector<T> vertices;
   std::unordered_map<size_t, std::vector<size_t>> edges;
 
@@ -101,12 +104,8 @@ public:
     return *this;
   }
 
-  BreadthFirstIterator depth_first_start(size_t start) const {
+  BreadthFirstIterator breadth_first(size_t start) const {
     return BreadthFirstIterator(start, this);
-  }
-
-  BreadthFirstIterator depth_first_end() const {
-    return BreadthFirstIterator::end(this);
   }
 };
 
@@ -125,8 +124,7 @@ int main(int argc, char **argv) {
       .add_edge(3, 6);
 
   std::cout << "Depth First:" << std::endl;
-  for (string_graph::breadth_first v = g.depth_first_start(0);
-       v != g.depth_first_end(); ++v) {
-    std::cout << *v << " (depth = " << v.depth() << ")" << std::endl;
+  for (auto &v : g.breadth_first(0)) {
+    std::cout << v << std::endl;
   }
 }

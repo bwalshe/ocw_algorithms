@@ -1,1 +1,1 @@
-Just trying to get the hang of some iterator stuff.
+This is just a place to collect together some notes/implementations from various OCW courses.

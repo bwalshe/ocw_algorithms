@@ -22,6 +22,9 @@ class Node:
     def children(self):
         yield from iterate_double_ended(self._child)
 
+    def __str__(self):
+        return "(" + str(self.key) + ": [" + ", ".join(str(c) for c in self.children()) + "])"
+
 
 def insert_node(double_ended: Node, node: Node):
     if node is None:
@@ -92,23 +95,36 @@ class FibHeap:
     def extract_min(self):
         z = self._min
         if z is not None:
-            for child in z.children():
-                insert_node(self._roots, child)
+            if z is z.right:
+                self._roots = None
+            else:
+                self._roots = z.right
+                remove(z)
+            for child in list(z.children()):
+                remove(child)
+                if self._roots is None:
+                    self._roots = child
+                else:
+                    insert_node(self._roots, child)
                 child.parent = None
-        if z is z.right:
-            self._min = None
-        else:
-            self._consolidate()
-        self._size -= 1
-        return z.key
+            if self._roots is None:
+                self._min = None
+            else:
+                self._min = self._roots
+                self._consolidate()
+            self._size -= 1
+            return z.key
 
     def _consolidate(self):
         A = {}
-        for w in iterate_double_ended(self._roots):
+        for w in list(iterate_double_ended(self._roots)):
             x = w
             d = w.degree
             while d in A:
                 y = A.get(d)
+                if y is x:
+                    del A[d]
+                    continue
                 if x.key > y.key:
                     x, y = y, x
                 self._fib_heap_link(y, x)
@@ -116,7 +132,8 @@ class FibHeap:
                 d += 1
             A[d] = x
         self._min = None
-        for d, n in A.items():
+        for n in A.values():
+            remove(n)
             if self._min is None:
                 self._roots = n
                 self._min = n
@@ -128,8 +145,16 @@ class FibHeap:
     @staticmethod
     def _fib_heap_link(y, x):
         remove(y)
-        x.add_child(y)
+        if x._child == None:
+            x._child = y
+        else:
+            insert_node(x._child, y)
+        y.parent = x
+        y.mark = False
         x.degree += 1
+
+    def __str__(self):
+        return "\n".join(str(r) for r in iterate_double_ended(self._roots))
 
 
 def test_list_insert():
@@ -137,7 +162,9 @@ def test_list_insert():
         assert list(n.key for n in iterate_double_ended(l1)) == list(vals)
 
     l1 = Node("a")
-    insert_node(l1, Node("b"))
+    expect_list("a")
+    b = Node("b")
+    insert_node(l1, b)
     expect_list("ab")
     insert_node(l1, Node("c"))
     expect_list("acb")
@@ -145,6 +172,8 @@ def test_list_insert():
     insert_node(l2, Node("e"))
     insert_node(l1, l2)
     expect_list("adecb")
+    insert_node(b, Node("f"))
+    expect_list("adecbf")
 
 
 def test_list_remove():
@@ -155,6 +184,10 @@ def test_list_remove():
     insert_node(b, c)
     assert [n.key for n in iterate_double_ended(a)] == list("abc")
     remove(b)
+    assert [n.key for n in iterate_double_ended(a)] == list("ac")
+    remove(c)
+    assert [n.key for n in iterate_double_ended(a)] == list("a")
+    insert_node(a, c)
     assert [n.key for n in iterate_double_ended(a)] == list("ac")
 
 
@@ -198,14 +231,24 @@ def test_merge():
 
 
 def test_extract_min():
+    size = 10
     heap = FibHeap()
-    for i in range(10):
-        heap.insert(i)
 
-    for i in range(10):
-        x = heap.extract_min()
-        assert x == i
-        assert len(heap) == 10 - i
+    def drain_and_test():
+        for i in range(size):
+            assert len(heap) == size - i
+            x = heap.extract_min()
+            assert x == i
+
+    for i in range(size):
+        heap.insert(i)
+    drain_and_test()
+    assert len(heap) == 0
+
+    for i in reversed(range(size)):
+        heap.insert(i)
+    drain_and_test()
+    assert len(heap) == 0
 
 
 def expect(heap, size, minimum):

@@ -1,7 +1,4 @@
-#include <cstddef>
-#include <iostream>
 #include <iterator>
-#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -16,9 +13,9 @@ public:
     using reference = T &;
 
   private:
-    std::set<int> _seen;
-    std::set<int> _frountier;
-    std::set<int> _next_frountier;
+    std::unordered_set<int> _seen;
+    std::unordered_set<int> _frountier;
+    std::unordered_set<int> _next_frountier;
     size_t _v;
     size_t _depth;
     const Graph *_g;
@@ -108,23 +105,3 @@ public:
     return BreadthFirstIterator(start, this);
   }
 };
-
-int main(int argc, char **argv) {
-  using string_graph = Graph<std::string>;
-
-  string_graph g;
-  for (int i = 0; i < 7; ++i) {
-    g.add_vertex(std::string(1, 'a' + i));
-  }
-  g.add_edge(0, 1)
-      .add_edge(0, 4)
-      .add_edge(1, 5)
-      .add_edge(5, 2)
-      .add_edge(1, 6)
-      .add_edge(3, 6);
-
-  std::cout << "Depth First:" << std::endl;
-  for (auto &v : g.breadth_first(0)) {
-    std::cout << v << std::endl;
-  }
-}

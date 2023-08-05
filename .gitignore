@@ -1,1 +1,3 @@
-a.out
+cpp/bazel*
+cpp/compile_commands.json
+.idea

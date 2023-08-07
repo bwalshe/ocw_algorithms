@@ -1,50 +1,40 @@
-from dataclasses import dataclass
-
-
 class Node:
     def __init__(self, value, parent=None):
         self.key = value
-        self.degree = 0
         self.parent = parent
         self.left = self
         self.right = self
         self.mark = False
 
-        self._child = None
+        self.children = CircularList()
 
-    def add_child(self, value):
-        new_node = Node(value, self)
-        if self._child is None:
-            self._child = new_node
-        else:
-            insert_node(self._child, new_node)
+    def add_child(self, new_child):
+        self.children.insert(new_child)
+        new_child.parent = self
 
-    def children(self):
-        yield from iterate_double_ended(self._child)
+    @property
+    def degree(self):
+        return len(self.children)
 
     def __str__(self):
-        return "(" + str(self.key) + ": [" + ", ".join(str(c) for c in self.children()) + "])"
+        return "(" + str(self.key) + ": [" + ", ".join(str(c) for c in self.children) + "])"
 
 
 def insert_node(double_ended: Node, node: Node):
     if node is None:
         return
-    start = node
-    end = node.left
     next_node = double_ended.right
-    double_ended.right = start
-    start.left = double_ended
-    end.right = next_node
-    next_node.left = end
+    double_ended.right = node
+    node.left = double_ended
+    node.right = next_node
+    next_node.left = node
 
 
-def iterate_double_ended(double_ended: Node):
+def iterate_double_ended(double_ended: Node, count: int):
     if double_ended is None:
         return
-    start = double_ended
-    yield start
-    n = start.right
-    while n is not start:
+    n = double_ended
+    for _ in range(count):
         yield n
         n = n.right
 
@@ -58,28 +48,70 @@ def remove(node: Node):
     node.right = node
 
 
+class CircularList:
+    def __init__(self, start: Node = None):
+        self._start: Node | None = start
+        self._size = 0
+        if start:
+            self.insert(start)
+
+    def __len__(self):
+        return self._size
+
+    @property
+    def any_element(self) -> Node:
+        return self._start
+
+    def insert(self, n):
+        if self._start is None:
+            self._start = n
+            self._start.right = n
+            self._start.left = n
+        else:
+            insert_node(self._start, n)
+        self._size += 1
+
+    def remove(self, n):
+        if self._size == 0:
+            raise IndexError("remove from empty list")
+        if n is self._start:
+            self._start = self._start.right
+        remove(n)
+        self._size -= 1
+        if self._size == 0:
+            self._start = None
+
+    def __iter__(self):
+        yield from iterate_double_ended(self._start, self._size)
+
+    def drain(self):
+        n = self.any_element
+        while n:
+            self.remove(n)
+            n_next = self.any_element
+            yield n
+            n = n_next
+
+    def __str__(self):
+        return "[" + ", ".join(str(n) for n in self) + "]"
+
+
 class FibHeap:
     def __init__(self):
-        self._roots = None
+        self._roots = CircularList()
         self._min = None
         self._size = 0
 
     def insert(self, val):
         node = Node(val)
-        if self._min is None:
-            self._roots = node
+        self._roots.insert(node)
+        if self._min is None or node.key < self._min.key:
             self._min = node
-        else:
-            insert_node(self._roots, node)
-            if node.key < self._min.key:
-                self._min = node
         self._size += 1
 
     def union(self, other: "FibHeap"):
-        if self._roots:
-            insert_node(self._roots, other._roots)
-        else:
-            self._roots = other._roots
+        for node in other._roots:
+            self._roots.insert(node)
         self._size += other._size
         if not self._min or (other._min and other._min.key < self._min.key):
             self._min = other._min
@@ -95,29 +127,21 @@ class FibHeap:
     def extract_min(self):
         z = self._min
         if z is not None:
-            if z is z.right:
-                self._roots = None
-            else:
-                self._roots = z.right
-                remove(z)
-            for child in list(z.children()):
-                remove(child)
-                if self._roots is None:
-                    self._roots = child
-                else:
-                    insert_node(self._roots, child)
+            self._roots.remove(z)
+            for child in z.children.drain():
+                self._roots.insert(child)
                 child.parent = None
-            if self._roots is None:
+            if len(self._roots) == 0:
                 self._min = None
             else:
-                self._min = self._roots
+                self._min = self._roots.any_element
                 self._consolidate()
             self._size -= 1
             return z.key
 
     def _consolidate(self):
         A = {}
-        for w in list(iterate_double_ended(self._roots)):
+        for w in self._roots.drain():
             x = w
             d = w.degree
             while d in A:
@@ -127,39 +151,24 @@ class FibHeap:
                     continue
                 if x.key > y.key:
                     x, y = y, x
-                self._fib_heap_link(y, x)
+                x.add_child(y)
+                y.mark = False
                 del A[d]
                 d += 1
             A[d] = x
         self._min = None
         for n in A.values():
-            remove(n)
-            if self._min is None:
-                self._roots = n
+            self._roots.insert(n)
+            if self._min is None or n.key < self._min.key:
                 self._min = n
-            else:
-                insert_node(self._roots, n)
-                if n.key < self._min.key:
-                    self._min = n
-
-    @staticmethod
-    def _fib_heap_link(y, x):
-        remove(y)
-        if x._child == None:
-            x._child = y
-        else:
-            insert_node(x._child, y)
-        y.parent = x
-        y.mark = False
-        x.degree += 1
 
     def __str__(self):
-        return "\n".join(str(r) for r in iterate_double_ended(self._roots))
+        return str(self._roots)
 
 
 def test_list_insert():
     def expect_list(vals):
-        assert list(n.key for n in iterate_double_ended(l1)) == list(vals)
+        assert list(n.key for n in iterate_double_ended(l1, len(vals))) == list(vals)
 
     l1 = Node("a")
     expect_list("a")
@@ -168,12 +177,6 @@ def test_list_insert():
     expect_list("ab")
     insert_node(l1, Node("c"))
     expect_list("acb")
-    l2 = Node("d")
-    insert_node(l2, Node("e"))
-    insert_node(l1, l2)
-    expect_list("adecb")
-    insert_node(b, Node("f"))
-    expect_list("adecbf")
 
 
 def test_list_remove():
@@ -182,22 +185,34 @@ def test_list_remove():
     c = Node("c")
     insert_node(a, b)
     insert_node(b, c)
-    assert [n.key for n in iterate_double_ended(a)] == list("abc")
+    assert [n.key for n in iterate_double_ended(a, 3)] == list("abc")
     remove(b)
-    assert [n.key for n in iterate_double_ended(a)] == list("ac")
+    assert [n.key for n in iterate_double_ended(a, 2)] == list("ac")
     remove(c)
-    assert [n.key for n in iterate_double_ended(a)] == list("a")
+    assert [n.key for n in iterate_double_ended(a, 1)] == list("a")
     insert_node(a, c)
-    assert [n.key for n in iterate_double_ended(a)] == list("ac")
+    assert [n.key for n in iterate_double_ended(a, 2)] == list("ac")
+
+
+def test_circular_list_iterate_and_remove():
+    l = CircularList()
+    l.insert(Node(0))
+    l.insert(Node(2))
+    l.insert(Node(1))
+
+    i = 0
+    for n in l.drain():
+        assert n.key == i
+        i += 1
 
 
 def test_node_children():
     chars = "ABCD"
     root = Node("Not used")
     for c in chars:
-        root.add_child(c)
+        root.add_child(Node(c))
 
-    children = [n.key for n in root.children()]
+    children = [n.key for n in root.children]
     assert set(children) == set(chars)
 
 

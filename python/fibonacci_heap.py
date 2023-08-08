@@ -102,12 +102,13 @@ class FibHeap:
         self._min = None
         self._size = 0
 
-    def insert(self, val):
+    def insert(self, val) -> Node:
         node = Node(val)
         self._roots.insert(node)
         if self._min is None or node.key < self._min.key:
             self._min = node
         self._size += 1
+        return node
 
     def union(self, other: "FibHeap"):
         for node in other._roots:
@@ -161,6 +162,33 @@ class FibHeap:
             self._roots.insert(n)
             if self._min is None or n.key < self._min.key:
                 self._min = n
+
+    def decrease_key(self, x: Node, k: int):
+        if k > x.key:
+            raise RuntimeError(f"Cannot change key from {x.key} to {k}"
+                               "New key must be lower than existing one.")
+        x.key = k
+        y = x.parent
+        if y is not None and x.key < y.key:
+            self._cut(x, y)
+            self._cascading_cut(y)
+        if x.key < self._min.key:
+            self._min = x
+
+    def _cut(self, x: Node, y: Node):
+        y.children.remove(x)
+        self._roots.insert(x)
+        x.parent = None
+        x.mark = False
+
+    def _cascading_cut(self, y: Node):
+        z = y.parent
+        if z is not None:
+            if not y.mark:
+                y.mark = True
+            else:
+                self._cut(y, z)
+                self._cascading_cut(z)
 
     def __str__(self):
         return str(self._roots)
@@ -269,3 +297,21 @@ def test_extract_min():
 def expect(heap, size, minimum):
     assert len(heap) == size
     assert heap.min == minimum
+
+
+def test_decrease_key():
+    h = FibHeap()
+    for i in range(10):
+        h.insert(i)
+
+    n1 = h.insert(100)
+    n2 = h.insert(100)
+
+    assert h.min == 0
+
+    h.decrease_key(n1, -1)
+    h.decrease_key(n2, -2)
+
+    assert h.extract_min() == -2
+    assert h.extract_min() == -1
+    assert h.extract_min() == 0

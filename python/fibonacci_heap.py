@@ -175,6 +175,10 @@ class FibHeap:
         if x.key < self._min.key:
             self._min = x
 
+    def delete_node(self, x: Node):
+        self.decrease_key(x, self.min -1)
+        self.extract_min()
+
     def _cut(self, x: Node, y: Node):
         y.children.remove(x)
         self._roots.insert(x)
@@ -315,3 +319,19 @@ def test_decrease_key():
     assert h.extract_min() == -2
     assert h.extract_min() == -1
     assert h.extract_min() == 0
+
+
+def test_delete_node():
+    count = 10
+    h = FibHeap()
+    last = None
+    for i in range(count):
+        last = h.insert(i)
+
+    h.delete_node(last)
+
+    remaining = []
+    while len(h) > 0:
+        remaining.append(h.extract_min())
+
+    assert remaining == list(range(count - 1))

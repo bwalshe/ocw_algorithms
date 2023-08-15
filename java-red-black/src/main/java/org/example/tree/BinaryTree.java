@@ -3,13 +3,13 @@ package org.example.tree;
 
 import java.util.function.Consumer;
 
-public class BinaryTree<T extends Comparable<T>> {
-    private final BinaryNode<T> _nil;
-    private BinaryNode<T> _root;
+public class BinaryTree<K extends Comparable<K>, D> {
+    private final BinaryNode<K, D> _nil;
+    private BinaryNode<K, D> _root;
     private int _size;
 
     public BinaryTree() {
-        _nil = new BinaryNode<>(null, null);
+        _nil = new BinaryNode<>(null, null, null);
         _nil.parent = _nil;
         _nil.left = _nil;
         _nil.right = _nil;
@@ -18,13 +18,13 @@ public class BinaryTree<T extends Comparable<T>> {
     }
 
 
-    public BinaryNode<T> insert(T item) {
-        BinaryNode<T> z = new BinaryNode<>(item, _nil);
-        BinaryNode<T> y = _nil;
-        BinaryNode<T> x = _root;
+    public BinaryNode<K, D> insert(K key, D item) {
+        BinaryNode<K, D> z = new BinaryNode<>(key, item, _nil);
+        BinaryNode<K, D> y = _nil;
+        BinaryNode<K, D> x = _root;
         while (x != _nil) {
             y = x;
-            if (z.data.compareTo(x.data) < 0) {
+            if (z.key.compareTo(x.key) < 0) {
                 x = x.left;
             } else {
                 x = x.right;
@@ -33,7 +33,7 @@ public class BinaryTree<T extends Comparable<T>> {
         z.parent = y;
         if (y == _nil) {
             _root = z;
-        } else if (z.data.compareTo(y.data) < 0) {
+        } else if (z.key.compareTo(y.key) < 0) {
             y.left = z;
         } else {
             y.right = z;
@@ -46,15 +46,30 @@ public class BinaryTree<T extends Comparable<T>> {
         return _size;
     }
 
-    public void walk(Consumer<T> visitor) {
+    public void walk(Consumer<D> visitor) {
         inorderWalk(visitor, _root);
     }
 
-    private void inorderWalk(Consumer<T> visitor, BinaryNode<T> node) {
+    private void inorderWalk(Consumer<D> visitor, BinaryNode<K, D> node) {
         if (node != _nil) {
             inorderWalk(visitor, node.left);
             visitor.accept(node.data);
             inorderWalk(visitor, node.right);
         }
+    }
+
+    public BinaryNode<K, D> search(K key) {
+        var x = _root;
+        while (x != _nil) {
+            var comp = key.compareTo(x.key);
+            if (comp == 0) {
+                return x;
+            } else if (key.compareTo(x.key) < 0) {
+                x = x.left;
+            } else {
+                x = x.right;
+            }
+        }
+        return x;
     }
 }

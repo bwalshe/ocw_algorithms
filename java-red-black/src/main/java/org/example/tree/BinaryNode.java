@@ -1,16 +1,20 @@
 package org.example.tree;
 
-public class BinaryNode<T> {
-    T data;
-    BinaryNode<T> left;
-    BinaryNode<T> right;
+public class BinaryNode<K, D> {
+    K key;
+    D data;
+    BinaryNode<K, D> left;
+    BinaryNode<K, D> right;
 
-    BinaryNode<T> parent;
+    BinaryNode<K, D> parent;
 
-    BinaryNode(T value, BinaryNode<T> nil) {
+    BinaryNode(K key, D value, BinaryNode<K, D> nil) {
+        this.key = key;
         data = value;
         left = nil;
         right = nil;
         parent = nil;
     }
+
+
 }

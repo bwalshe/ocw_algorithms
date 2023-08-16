@@ -8,13 +8,15 @@ public class BinaryNode<K, D> {
 
     BinaryNode<K, D> parent;
 
+    boolean isRed;
+
     BinaryNode(K key, D value, BinaryNode<K, D> nil) {
         this.key = key;
         data = value;
         left = nil;
         right = nil;
         parent = nil;
+        isRed = false;
     }
-
 
 }

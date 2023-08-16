@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -20,7 +21,7 @@ public class BinaryTreeTest {
                 .toList();
         BinaryTree<Integer, Integer> tree = new BinaryTree<>();
         assertThat(tree.size(), equalTo(0));
-        for(int i: expected) {
+        for (int i : expected) {
             tree.insert(i, i);
         }
         assertThat(tree.size(), equalTo(expected.size()));
@@ -30,7 +31,7 @@ public class BinaryTreeTest {
 
         tree = new BinaryTree<>();
         var itr = expected.listIterator(expected.size());
-        while (itr.hasPrevious()){
+        while (itr.hasPrevious()) {
             var i = itr.previous();
             tree.insert(i, i);
         }
@@ -42,7 +43,7 @@ public class BinaryTreeTest {
     @Test
     public void testBinaryTreeSearch() {
         BinaryTree<Integer, Boolean> tree = new BinaryTree<>();
-        for(int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 10; ++i) {
             tree.insert(2 * i, false);
         }
 
@@ -53,4 +54,21 @@ public class BinaryTreeTest {
         assertThat(tree.search(5).data, is(nullValue()));
     }
 
+
+    @Test
+    public void testBinaryTreeHeight() {
+        Function<Integer, Integer> bound = (n) -> (int) (2 * Math.log(n + 1) / Math.log(2));
+        BinaryTree<Integer, Integer> tree = new BinaryTree<>();
+        for (int i = 0; i < 100; ++i) {
+            tree.insert(i, i);
+            assertThat(tree.height(), lessThanOrEqualTo(bound.apply(tree.size())));
+        }
+
+        tree = new BinaryTree<>();
+        for (int i = 100; i > 0; --i) {
+            tree.insert(i, i);
+            assertThat(tree.height(), lessThanOrEqualTo(bound.apply(tree.size())));
+
+        }
+    }
 }

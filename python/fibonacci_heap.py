@@ -1,5 +1,6 @@
-from typing import Any, Protocol, TypeVar, Generic
-from abc import ABC, abstractmethod
+from typing import Any, Protocol, TypeVar, Generic, Optional
+from collections.abc import Iterator
+from abc import abstractmethod
 
 C = TypeVar("C", bound="Comparable")
 
@@ -23,8 +24,8 @@ class Comparable(Protocol):
         return not self < other
 
 
-class Node:
-    def __init__(self, key: Comparable, value: Any = None, parent=None):
+class Node(Generic[C]):
+    def __init__(self, key: C, value: Any = None, parent=None):
         self.key = key
         self.value = value
         self.parent = parent
@@ -46,7 +47,7 @@ class Node:
         return "(" + str(self.key) + ": [" + ", ".join(str(c) for c in self.children) + "])"
 
 
-def insert_node(double_ended: Node, node: Node):
+def insert_node(double_ended: Node[C], node: Node[C]):
     if node is None:
         return
     next_node = double_ended.right
@@ -56,7 +57,7 @@ def insert_node(double_ended: Node, node: Node):
     next_node.left = node
 
 
-def iterate_double_ended(double_ended: Node, count: int):
+def iterate_double_ended(double_ended: Node[C], count: int) -> Iterator[Node[C]]:
     if double_ended is None:
         return
     n = double_ended
@@ -74,21 +75,21 @@ def remove(node: Node):
     node.right = node
 
 
-class CircularList:
-    def __init__(self, start: Node = None):
+class CircularList(Generic[C]):
+    def __init__(self, start: Node[C] = None):
         self._start: Node | None = start
         self._size = 0
         if start:
             self.insert(start)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._size
 
     @property
-    def any_element(self) -> Node:
+    def any_element(self) -> Node[C]:
         return self._start
 
-    def insert(self, n):
+    def insert(self, n: Node[C]) -> None:
         if self._start is None:
             self._start = n
             self._start.right = n
@@ -97,7 +98,7 @@ class CircularList:
             insert_node(self._start, n)
         self._size += 1
 
-    def remove(self, n):
+    def remove(self, n: Node[C]) -> None:
         if self._size == 0:
             raise IndexError("remove from empty list")
         if n is self._start:
@@ -107,10 +108,10 @@ class CircularList:
         if self._size == 0:
             self._start = None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Node[C]]:
         yield from iterate_double_ended(self._start, self._size)
 
-    def drain(self):
+    def drain(self) -> Iterator[Node[C]]:
         n = self.any_element
         while n:
             self.remove(n)
@@ -118,17 +119,17 @@ class CircularList:
             yield n
             n = n_next
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "[" + ", ".join(str(n) for n in self) + "]"
 
 
-class FibHeap:
+class FibHeap(Generic[C]):
     def __init__(self):
         self._roots = CircularList()
         self._min = None
         self._size = 0
 
-    def insert(self, key, val=None) -> Node:
+    def insert(self, key: C, val=None) -> Node[C]:
         node = Node(key, val)
         self._roots.insert(node)
         if self._min is None or node.key < self._min.key:
@@ -136,22 +137,25 @@ class FibHeap:
         self._size += 1
         return node
 
-    def union(self, other: "FibHeap"):
+    def union(self, other: "FibHeap[C]") -> None:
+        """
+        Mutates this object so that it contains all elements from the other heap
+        """
         for node in other._roots:
             self._roots.insert(node)
         self._size += other._size
         if not self._min or (other._min and other._min.key < self._min.key):
             self._min = other._min
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._size
 
     @property
-    def min(self):
+    def min(self) -> Optional[Node[C]]:
         if self._min:
-            return self._min.key
+            return self._min
 
-    def extract_min(self) -> Node:
+    def extract_min(self) -> Node[C]:
         z = self._min
         if z is not None:
             self._roots.remove(z)
@@ -189,7 +193,7 @@ class FibHeap:
             if self._min is None or n.key < self._min.key:
                 self._min = n
 
-    def decrease_key(self, x: Node, k: int):
+    def decrease_key(self, x: Node[C], k: int):
         if k > x.key:
             raise RuntimeError(f"Cannot change key from {x.key} to {k}"
                                "New key must be lower than existing one.")
@@ -201,8 +205,8 @@ class FibHeap:
         if x.key < self._min.key:
             self._min = x
 
-    def delete_node(self, x: Node):
-        self.decrease_key(x, self.min - 1)
+    def delete_node(self, x: Node) -> None:
+        self.decrease_key(x, self.min.key - 1)
         self.extract_min()
 
     def _cut(self, x: Node, y: Node):
@@ -326,7 +330,10 @@ def test_extract_min():
 
 def expect(heap, size, minimum):
     assert len(heap) == size
-    assert heap.min == minimum
+    if size == 0:
+        assert heap.min is None
+    else:
+        assert heap.min.key == minimum
 
 
 def test_decrease_key():
@@ -337,7 +344,7 @@ def test_decrease_key():
     n1 = h.insert(100)
     n2 = h.insert(100)
 
-    assert h.min == 0
+    assert h.min.key == 0
 
     h.decrease_key(n1, -1)
     h.decrease_key(n2, -2)

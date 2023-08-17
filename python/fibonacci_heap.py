@@ -1,6 +1,32 @@
+from typing import Any, Protocol, TypeVar, Generic
+from abc import ABC, abstractmethod
+
+C = TypeVar("C", bound="Comparable")
+
+
+class Comparable(Protocol):
+    @abstractmethod
+    def __eq__(self, other: Any) -> bool:
+        pass
+
+    @abstractmethod
+    def __lt__(self: C, other: C) -> bool:
+        pass
+
+    def __gt__(self: C, other: C) -> bool:
+        return (not self < other) and self != other
+
+    def __le__(self: C, other: C) -> bool:
+        return self < other or self == other
+
+    def __ge__(self: C, other: C) -> bool:
+        return not self < other
+
+
 class Node:
-    def __init__(self, value, parent=None):
-        self.key = value
+    def __init__(self, key: Comparable, value: Any = None, parent=None):
+        self.key = key
+        self.value = value
         self.parent = parent
         self.left = self
         self.right = self
@@ -102,8 +128,8 @@ class FibHeap:
         self._min = None
         self._size = 0
 
-    def insert(self, val) -> Node:
-        node = Node(val)
+    def insert(self, key, val=None) -> Node:
+        node = Node(key, val)
         self._roots.insert(node)
         if self._min is None or node.key < self._min.key:
             self._min = node
@@ -125,7 +151,7 @@ class FibHeap:
         if self._min:
             return self._min.key
 
-    def extract_min(self):
+    def extract_min(self) -> Node:
         z = self._min
         if z is not None:
             self._roots.remove(z)
@@ -138,7 +164,7 @@ class FibHeap:
                 self._min = self._roots.any_element
                 self._consolidate()
             self._size -= 1
-            return z.key
+            return z
 
     def _consolidate(self):
         A = {}
@@ -176,7 +202,7 @@ class FibHeap:
             self._min = x
 
     def delete_node(self, x: Node):
-        self.decrease_key(x, self.min -1)
+        self.decrease_key(x, self.min - 1)
         self.extract_min()
 
     def _cut(self, x: Node, y: Node):
@@ -284,7 +310,7 @@ def test_extract_min():
     def drain_and_test():
         for i in range(size):
             assert len(heap) == size - i
-            x = heap.extract_min()
+            x = heap.extract_min().key
             assert x == i
 
     for i in range(size):
@@ -316,9 +342,9 @@ def test_decrease_key():
     h.decrease_key(n1, -1)
     h.decrease_key(n2, -2)
 
-    assert h.extract_min() == -2
-    assert h.extract_min() == -1
-    assert h.extract_min() == 0
+    assert h.extract_min().key == -2
+    assert h.extract_min().key == -1
+    assert h.extract_min().key == 0
 
 
 def test_delete_node():
@@ -332,6 +358,6 @@ def test_delete_node():
 
     remaining = []
     while len(h) > 0:
-        remaining.append(h.extract_min())
+        remaining.append(h.extract_min().key)
 
     assert remaining == list(range(count - 1))

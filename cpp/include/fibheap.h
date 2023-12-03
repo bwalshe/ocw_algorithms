@@ -30,7 +30,7 @@ template <typename T> class FibHeap {
   }
 
   void consolodate() {
-    std::vector<Node *> degrees(size(), nullptr);
+    std::vector<Node *> degrees(std::log2(size()) + 1, nullptr);
     for (NodeItr w = roots.begin(); w != roots.end(); ++w) {
       auto degree = w->degree();
       auto *x = &(*w);

@@ -25,3 +25,25 @@ cc_test(
 	    "@com_google_googletest//:gtest_main"
 	],
 )
+
+
+cc_test(
+	name = "test_circular",
+	size = "small",
+	srcs = ["test_circular.cpp"],
+	deps = [
+	    "//include:circular_list",
+	    "@com_google_googletest//:gtest_main"
+	],
+)
+
+cc_test(
+    name = "test_fib",
+    size = "small",
+    srcs = ["test_fib.cpp"],
+    deps = [
+	"//include:fibheap",
+	"@com_google_googletest//:gtest_main"
+    ],
+    copts = ["-g"],
+)
